@@ -7,6 +7,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -26,8 +27,8 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_CODE = 1;
 
-    private final static String BASE_URL = "http://www.apk.anzhi.com/";
-    private final static String FILE_URL = "data4/apk/201809/06/f2a4dbd1b6cc2dca6567f42ae7a91f11_45629100.apk";
+    private final static String BASE_URL = "https://drive.google.com/";
+    private final static String FILE_URL = "uc?export=download&id=16H5K6WXxdfxlcc9z80xXPmFkYDORwvrP&confirm=t&uuid=704e6bfc-a35b-4d00-abdf-d92ab59140ed&at=ALgDtsyvCXlwFYcrhzckvwGl9nO9:1675333783531";
     private String desFilePath;
     private Button download;
     private TextView tvProgress;
@@ -52,6 +53,11 @@ public class MainActivity extends AppCompatActivity {
                 startDownload(desFilePath);
             }
         });
+
+        tvProgress.setOnClickListener((v) -> {
+            DownloadUtil.getInstance().shutdownExecutor();
+            Log.d(TAG, "onCreate: EXECUTOR SHUTDOWN");
+        });
     }
 
     private void startDownload(String desFilePath) {
@@ -68,13 +74,13 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     @Override
-                    public void onProgress(int progress, long downloadedLengthKb, long totalLengthKb) {
-                        tvProgress.setText(String.format("文件文件下载进度：%d%s \n\n已下载:%sKB | 总长:%sKB", progress,"%", downloadedLengthKb + "", totalLengthKb + ""));
+                    public void onProgress(int progress, long downloadedLength, long totalLength) {
+                        tvProgress.setText(String.format("文件文件下载进度：%d%s \n\n已下载:%sKB | 总长:%sKB", progress,"%", downloadedLength + "", totalLength + ""));
 
                     }
 
                     @Override
-                    public void onFailed(String errMsg) {
+                    public void onFailed(String errorMessage) {
                         download.setEnabled(true);
                     }
                 });

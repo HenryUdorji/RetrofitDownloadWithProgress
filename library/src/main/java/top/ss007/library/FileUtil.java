@@ -31,11 +31,14 @@ public final class FileUtil {
                 fos.write(b, 0, len);
             }
             fos.flush();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
         return file;
+    }
+
+    public static void deleteFile(String filePath) {
+        File file = new File(filePath);
+        file.delete();
     }
 }

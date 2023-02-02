@@ -16,20 +16,26 @@ import retrofit2.Retrofit;
 
 public class DownloadUtil {
     private static final String TAG = "DownloadUtil";
-    private static final int DEFAULT_TIMEOUT = 15;
-    private final ExecutorService mExecutorService = Executors.newSingleThreadExecutor();
+    private static final int DEFAULT_TIMEOUT = 120;
+    private ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final MainThreadExecutor uiExecutor = new MainThreadExecutor();
-    private OkHttpClient.Builder mBuilder;
+    private OkHttpClient.Builder builder;
+    private DownloadListener listener;
+    private InputParameter inputParameter;
+    private static DownloadUtil INSTANCE;
 
     private DownloadUtil() {
     }
 
     public static DownloadUtil getInstance() {
-        return DownloadUtil.SingletonHolder.INSTANCE;
+        if (INSTANCE == null) {
+            INSTANCE = new DownloadUtil();
+        }
+        return INSTANCE;
     }
 
     public void initConfig(OkHttpClient.Builder builder) {
-        this.mBuilder = builder;
+        this.builder = builder;
     }
 
     /**
@@ -38,22 +44,26 @@ public class DownloadUtil {
      * @param listener
      */
     public void downloadFile(InputParameter inputParam, final DownloadListener listener) {
+        this.listener = listener;
+        this.inputParameter = inputParam;
+
 
         DownloadInterceptor interceptor = new DownloadInterceptor(listener);
-        if (mBuilder != null) {
-            mBuilder.addInterceptor(interceptor);
+        if (builder != null) {
+            builder.addInterceptor(interceptor);
         } else {
-            mBuilder = new OkHttpClient.Builder()
+            builder = new OkHttpClient.Builder()
                     .addInterceptor(interceptor)
                     .retryOnConnectionFailure(true)
-                    .connectTimeout(DEFAULT_TIMEOUT, TimeUnit.SECONDS);
+                    .connectTimeout(DEFAULT_TIMEOUT, TimeUnit.SECONDS)
+                    .readTimeout(DEFAULT_TIMEOUT, TimeUnit.SECONDS);
         }
         final DownloadService api = new Retrofit.Builder()
                 .baseUrl(inputParam.getBaseUrl())
-                .client(mBuilder.build())
+                .client(builder.build())
                 .build()
                 .create(DownloadService.class);
-        mExecutorService.execute(() -> {
+        executorService.execute(() -> {
             try {
                 Response<ResponseBody> result = api.downloadWithDynamicUrl(inputParam.getRelativeUrl()).execute();
                 File file = FileUtil.writeFile(inputParam.getLoadedFilePath(), result.body().byteStream());
@@ -77,8 +87,14 @@ public class DownloadUtil {
         });
     }
 
-    private static class SingletonHolder {
-        private static final DownloadUtil INSTANCE = new DownloadUtil();
-    }
+    public void shutdownExecutor() {
+        executorService.shutdownNow();
+        INSTANCE = null;
+        FileUtil.deleteFile(inputParameter.getLoadedFilePath());
 
+        if (listener != null) {
+            uiExecutor.execute(() -> listener.onFailed("File download stopped"));
+            Log.d(TAG, "shutdownExecutor: FILE DOWNLOAD STOPPED");
+        }
+    }
 }

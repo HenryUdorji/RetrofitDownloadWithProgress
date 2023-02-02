@@ -54,7 +54,7 @@ public class DownloadResponseBody extends ResponseBody {
                 // read() returns the number of bytes read, or -1 if this source is exhausted.
                 if (null != downloadListener) {
                     totalBytesRead += bytesRead != -1 ? bytesRead : 0;
-                    Log.d("DownloadUtil", "已经下载：" + totalBytesRead + " 总长：" + responseBody.contentLength());
+                    Log.d("FileDownloadUtil", "Downloaded：" + totalBytesRead + " Total size：" + responseBody.contentLength());
                     final int progress = (int) (totalBytesRead * 100 / responseBody.contentLength());
                     if (uiExecutor == null) {
                         uiExecutor = new MainThreadExecutor();
